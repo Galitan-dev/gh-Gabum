@@ -1,0 +1,2 @@
+echo "GABUM_HOME = \"$GABUM_HOME\""
+echo "GABUM_DIRECTORY = \"$GABUM_DIRECTORY\""
