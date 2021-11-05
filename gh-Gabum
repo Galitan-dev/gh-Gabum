@@ -26,6 +26,7 @@ gh_gabum_usage() {
   printf "Commands:\n"
   echo "  verify   Verify the gabum settings"
   echo "  create   Create a new project"
+  echo "  open     Open a project"
   echo
 
   if [[ -n $long_usage ]]; then
@@ -125,6 +126,48 @@ gh_gabum_create_usage() {
   fi
 }
 
+# :command.usage
+gh_gabum_open_usage() {
+  if [[ -n $long_usage ]]; then
+    printf "gh-gabum open - Open a project\n"
+    echo 
+  else
+    printf "gh-gabum open - Open a project\n"
+    echo 
+  fi
+
+  printf "Shortcut: o\n"
+  echo
+
+  printf "Usage:\n"
+  printf "  gh-gabum open NAME\n"
+  printf "  gh-gabum open --help | -h\n"
+  echo
+
+  if [[ -n $long_usage ]]; then
+    printf "Options:\n"
+    # :command.usage_fixed_flags
+    echo "  --help, -h"
+    printf "    Show this help\n"
+    echo
+
+    # :command.usage_args
+    printf "Arguments:\n"
+    
+    # :argument.usage
+    echo "  NAME"
+    printf "    The name of the project\n"
+    echo
+
+    # :command.usage_examples
+    printf "Examples:\n"
+    
+    printf "  gh gabum open example-project\n"
+    echo
+
+  fi
+}
+
 # :command.normalize_input
 normalize_input() {
   local arg flags
@@ -187,7 +230,15 @@ gh_gabum_create_command() {
   
   gh repo create
   
-  code -nw "${PROJECT_PATH}"
+  code -n "${PROJECT_PATH}"
+}
+
+# :command.function
+gh_gabum_open_command() {
+  # :src/open_command.sh
+  PROJECT_PATH="${GABUM_DIRECTORY}/${args[name]}"
+  
+  code -n "${PROJECT_PATH}"
 }
 
 # :command.parse_requirements
@@ -230,6 +281,13 @@ parse_requirements() {
     action="create"
     shift
     gh_gabum_create_parse_requirements "$@"
+    shift $#
+    ;;    
+  
+  open | o )
+    action="open"
+    shift
+    gh_gabum_open_parse_requirements "$@"
     shift $#
     ;;    
   
@@ -367,9 +425,66 @@ gh_gabum_create_parse_requirements() {
   # :command.whitelist_filter
 }
 
+# :command.parse_requirements
+gh_gabum_open_parse_requirements() {
+  # :command.fixed_flag_filter
+  case "$1" in
+  --version | -v )
+    version_command
+    exit
+    ;;
+  
+  --help | -h )
+    long_usage=yes
+    gh_gabum_open_usage
+    exit
+    ;;
+  
+  esac
+  # :command.environment_variables_filter
+  # :command.dependencies_filter
+  # :command.command_filter
+  action="open"
+  # :command.required_args_filter
+  if [[ $1 && $1 != -* ]]; then
+    args[name]=$1
+    shift
+  else
+    printf "missing required argument: NAME\nusage: gh-gabum open NAME\n"
+    exit 1
+  fi
+  # :command.required_flags_filter
+  # :command.parse_requirements_while
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+    case "$key" in
+  
+    -* )
+      printf "invalid option: %s\n" "$key"
+      exit 1
+      ;;
+  
+    * )
+      # :command.parse_requirements_case
+      if [[ ! ${args[name]} ]]; then
+        args[name]=$1
+        shift
+      else
+        printf "invalid argument: %s\n" "$key"
+        exit 1
+      fi
+      ;;
+  
+    esac
+  done
+  # :command.catch_all_filter
+  # :command.default_assignments
+  # :command.whitelist_filter
+}
+
 # :command.initialize
 initialize() {
-  version="1.0.0"
+  version="0.2.0"
   long_usage=''
   set -e
 
@@ -424,6 +539,14 @@ run() {
       gh_gabum_create_usage
     else
       gh_gabum_create_command
+    fi
+  
+  elif [[ $action == "open" ]]; then
+    if [[ ${args[--help]} ]]; then
+      long_usage=yes
+      gh_gabum_open_usage
+    else
+      gh_gabum_open_command
     fi
   
   elif [[ $action == "root" ]]; then

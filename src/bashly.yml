@@ -1,6 +1,6 @@
 name: gh-gabum
 help: An extension to generate new projects as fast as a rocket 🚀 ! 
-version: 0.1.0
+version: 0.2.0
 
 environment_variables:
 - name: GABUM_HOME
@@ -26,3 +26,15 @@ commands:
 
   examples:
   - gh gabum create example-project
+
+- name: open
+  short: o
+  help: Open a project
+
+  args:
+  - name: name
+    required: true
+    help: The name of the project
+
+  examples:
+  - gh gabum open example-project
