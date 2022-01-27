@@ -1,6 +1,6 @@
 name: gh-gabum
 help: An extension to generate new projects as fast as a rocket 🚀 ! 
-version: 0.2.0
+version: 0.3.0
 
 environment_variables:
 - name: GABUM_HOME
@@ -23,9 +23,18 @@ commands:
   - name: name
     required: true
     help: The name of the new project
+  - name: license
+    required: false
+    help: The license type to use
+
+  flags:
+  - long: --private
+    short: -p
+    help: Setup a private project
 
   examples:
-  - gh gabum create example-project
+  - gh gabum create my-new-project MIT
+  - gh gabum create my-super-secret-project Unlicense --private
 
 - name: open
   short: o

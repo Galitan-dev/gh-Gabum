@@ -98,7 +98,7 @@ gh_gabum_create_usage() {
   echo
 
   printf "Usage:\n"
-  printf "  gh-gabum create NAME\n"
+  printf "  gh-gabum create NAME [LICENSE] [options]\n"
   printf "  gh-gabum create --help | -h\n"
   echo
 
@@ -108,7 +108,11 @@ gh_gabum_create_usage() {
     echo "  --help, -h"
     printf "    Show this help\n"
     echo
-
+    # :command.usage_flags
+    # :flag.usage
+    echo "  --private, -p"
+    printf "    Setup a private project\n"
+    echo
     # :command.usage_args
     printf "Arguments:\n"
     
@@ -116,11 +120,17 @@ gh_gabum_create_usage() {
     echo "  NAME"
     printf "    The name of the new project\n"
     echo
+    
+    # :argument.usage
+    echo "  LICENSE"
+    printf "    The license type to use\n"
+    echo
 
     # :command.usage_examples
     printf "Examples:\n"
     
-    printf "  gh gabum create example-project\n"
+    printf "  gh gabum create my-new-project MIT\n"
+    printf "  gh gabum create my-super-secret-project Unlicense --private\n"
     echo
 
   fi
@@ -226,9 +236,16 @@ gh_gabum_create_command() {
   PROJECT_PATH="${GABUM_DIRECTORY}/${args[name]}"
   
   git init "${PROJECT_PATH}"
-  cd "${PROJECT_PATH}"
+  cd "${PROJECT_PATH}" 
   
-  gh repo create
+  license-generator --project "${args[name]}" --year $(date "+%Y") ${args[license]}
+  yo standard-readme
+  
+  if [[ $private ]]; then
+      gh repo create "${args[name]}" --private -s "${PROJECT_PATH}"
+  else
+      gh repo create "${args[name]}" --public -s "${PROJECT_PATH}"
+  fi
   
   code -n "${PROJECT_PATH}"
 }
@@ -393,7 +410,7 @@ gh_gabum_create_parse_requirements() {
     args[name]=$1
     shift
   else
-    printf "missing required argument: NAME\nusage: gh-gabum create NAME\n"
+    printf "missing required argument: NAME\nusage: gh-gabum create NAME [LICENSE] [options]\n"
     exit 1
   fi
   # :command.required_flags_filter
@@ -401,6 +418,12 @@ gh_gabum_create_parse_requirements() {
   while [[ $# -gt 0 ]]; do
     key="$1"
     case "$key" in
+    # :flag.case
+    --private | -p )
+      args[--private]=1
+      shift
+      ;;
+  
   
     -* )
       printf "invalid option: %s\n" "$key"
@@ -411,6 +434,9 @@ gh_gabum_create_parse_requirements() {
       # :command.parse_requirements_case
       if [[ ! ${args[name]} ]]; then
         args[name]=$1
+        shift
+      elif [[ ! ${args[license]} ]]; then
+        args[license]=$1
         shift
       else
         printf "invalid argument: %s\n" "$key"
@@ -484,7 +510,7 @@ gh_gabum_open_parse_requirements() {
 
 # :command.initialize
 initialize() {
-  version="0.2.0"
+  version="0.3.0"
   long_usage=''
   set -e
 
@@ -500,8 +526,7 @@ initialize() {
     GABUM_HOME="${GABUM_HOME}"
   fi
   
-  if [[ ! -f "${GABUM_HOME}" ]]
-  then
+  if [[ ! -f "${GABUM_HOME}" ]]; then
       mkdir -p "${GABUM_HOME}"
   fi
   
@@ -514,6 +539,43 @@ initialize() {
   if [[ ! -f "${GABUM_DIRECTORY}" ]]
   then
       mkdir -p "${GABUM_DIRECTORY}"
+  fi
+  
+  if ! [ -x "$(command -v git)" ]; then
+    echo 'Error: git is not installed.' >&2
+    exit 1
+  fi
+  
+  if ! [ -x "$(command -v cargo)" ]; then
+    echo 'Error: cargo is not installed.' >&2
+    exit 1
+  fi
+  
+  if ! [ -x "$(command -v npm)" ]; then
+    echo 'Error: npm is not installed.' >&2
+    exit 1
+  fi
+  
+  if ! [ -x "$(command -v license-generator)" ]; then
+    echo 'Installing license-generator'
+    cargo install license-generator
+  fi
+  
+  if ! [ -x "$(command -v yo)" ]; then
+    echo 'Installing yeoman'
+    npm install --global yo
+  fi
+  
+  if [[ ! -f "${GABUM_DIRECTORY}/.cache" ]]; then
+    mkdir -p "${GABUM_DIRECTORY}/.cache"
+  fi
+  
+  if [[ ! -f "${GABUM_DIRECTORY}/.cache/standard-readme" ]]; then
+    echo 'Installing generator-readme-md'
+    export npm_config_loglevel=silent
+    npm install --global yo generator-standard-readme
+    unset npm_config_loglevel
+    touch "${GABUM_DIRECTORY}/.cache/standard-readme"
   fi
 }
 
